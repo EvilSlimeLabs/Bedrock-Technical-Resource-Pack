@@ -47,6 +47,22 @@ Contributions to improve the resource pack are welcome! Here's how you can contr
 5. Test your changes in Minecraft
 6. **Submit a pull request** with a clear description of your improvements
 
+### Building the pack locally
+
+The build tooling is plain Node (20 or newer) with no dependencies, so there is
+nothing to install:
+
+```sh
+npm run release
+```
+
+That parses every JSON file, resolves every texture, geometry, animation,
+particle and render controller reference, runs the test suites, and writes
+`dist/Bedrock-Technical-Resource-Pack-v<version>.mcpack`. Open that file with
+Minecraft to install it. `npm run audit` on its own is the quick way to check a
+change before testing in game — Bedrock does not report broken references, it
+just draws nothing.
+
 ### Development Guidelines
 
 - Follow Minecraft's texture format and structure
