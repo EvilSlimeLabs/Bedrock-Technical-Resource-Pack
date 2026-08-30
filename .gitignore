@@ -2,3 +2,4 @@ Bedrock-Technical-Resource-Pack.mcpack
 dist/
 node_modules/
 tests/.generated/
+branding/cache/

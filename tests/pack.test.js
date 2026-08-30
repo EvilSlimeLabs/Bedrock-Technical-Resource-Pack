@@ -13,6 +13,7 @@ const path = require('node:path');
 const { loadPack, collectPackFiles, resolveTexture } = require('../tools/lib/pack.js');
 const { validatePack, loadVanillaBaseline } = require('../tools/lib/validate.js');
 const { writeZip, readZip } = require('../tools/lib/zip.js');
+const { readPngHeader } = require('../tools/lib/png.js');
 const { ROOT, currentVersion, packName } = require('../tools/lib/cli.js');
 
 const index = loadPack(ROOT);
@@ -51,6 +52,14 @@ test('development material is left out of the archive', () => {
   assert.ok(!files.some((f) => f.startsWith('tests/')), 'tests/ must not ship');
   assert.ok(!files.some((f) => f.startsWith('documentation pictures')), 'docs images must not ship');
   assert.ok(!files.some((f) => f.startsWith('.git')), 'git metadata must not ship');
+});
+
+test('the shipped pack icon is a 256x256 PNG', () => {
+  // Microsoft documents 256x256 for the pack selection screens; the icon is
+  // generated, so a different size means branding/make_icon.py drifted.
+  const header = readPngHeader(path.join(ROOT, 'pack_icon.png'));
+  assert.equal(header.valid, true);
+  assert.deepEqual([header.width, header.height], [256, 256]);
 });
 
 test('every entry in the archive exists on disk and is a file', () => {

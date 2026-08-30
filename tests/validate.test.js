@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { loadPack } = require('../tools/lib/pack.js');
 const { validatePack, patternToRegExp, loadExternalRefs } = require('../tools/lib/validate.js');
-const { writeFixture, expectationsFor, PNG } = require('./helpers/fixture.js');
+const { writeFixture, expectationsFor, PNG, makePng } = require('./helpers/fixture.js');
 
 /**
  * Build a fixture and validate it.
@@ -212,6 +212,41 @@ test('a .png that is not a PNG is an error', () => {
     raw: { 'textures/fixture.png': Buffer.from('GIF89a not really a png') },
   });
   assert.ok(has(errors, /does not start with a PNG signature/), dump(errors));
+});
+
+test('a pack icon that is not 256x256 is a warning', () => {
+  // Microsoft's CPACKICON104: square, and 256x256 for the best display.
+  const { errors, warnings } = validateFixture('icon-small', {
+    raw: { 'pack_icon.png': makePng(64, 64) },
+  });
+  assert.deepEqual(errors, [], dump(errors));
+  assert.ok(has(warnings, /CPACKICON104: should be 256x256, found 64x64/), dump(warnings));
+});
+
+test('a pack icon that is not square is a warning', () => {
+  const { warnings } = validateFixture('icon-oblong', {
+    raw: { 'pack_icon.png': makePng(256, 128) },
+  });
+  assert.ok(has(warnings, /CPACKICON104: must be square, found 256x128/), dump(warnings));
+});
+
+test('a correctly sized pack icon says nothing', () => {
+  const { warnings } = validateFixture('icon-ok');
+  assert.ok(!has(warnings, /CPACKICON/), dump(warnings));
+});
+
+test('a second pack icon outside the root is a warning', () => {
+  const { warnings } = validateFixture('icon-duplicate', {
+    raw: { 'textures/pack_icon.png': makePng(256, 256) },
+  });
+  assert.ok(has(warnings, /CPACKICON102: a second pack icon/), dump(warnings));
+});
+
+test('a subpack keeps its own icon without complaint', () => {
+  const { warnings } = validateFixture('icon-subpack', {
+    raw: { 'subpacks/hd/pack_icon.png': makePng(256, 256) },
+  });
+  assert.ok(!has(warnings, /CPACKICON102/), dump(warnings));
 });
 
 test('a missing pack icon is an error', () => {

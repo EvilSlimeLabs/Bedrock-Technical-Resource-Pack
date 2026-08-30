@@ -11,6 +11,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { makePng } = require('./png.js');
 
 const GENERATED = path.resolve(__dirname, '..', '.generated');
 
@@ -99,8 +100,11 @@ function basePack(version = '1.2.3') {
   };
 }
 
-/** Eight bytes of PNG signature is all the image check looks at. */
-const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x01]);
+/** A real 16x16 PNG, the size a block texture would be. */
+const PNG = makePng(16, 16);
+
+/** A pack icon at the 256x256 Microsoft documents (CPACKICON104). */
+const ICON = makePng(256, 256);
 
 /**
  * Write a pack to disk.
@@ -122,7 +126,7 @@ function writeFixture(name, { mutate, raw = {}, version = '1.2.3' } = {}) {
 
   const files = {
     ...Object.fromEntries(Object.entries(docs).map(([k, v]) => [k, JSON.stringify(v, null, 2)])),
-    'pack_icon.png': PNG,
+    'pack_icon.png': ICON,
     'textures/fixture.png': PNG,
     ...raw,
   };
@@ -145,4 +149,4 @@ function expectationsFor(version = '1.2.3') {
   return { version, packName: `BE_Tech_RP_v${version}` };
 }
 
-module.exports = { GENERATED, basePack, writeFixture, expectationsFor, PNG };
+module.exports = { GENERATED, basePack, writeFixture, expectationsFor, PNG, ICON, makePng };

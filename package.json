@@ -1,6 +1,6 @@
 {
   "name": "bedrock-technical-resource-pack",
-  "version": "0.2.12",
+  "version": "0.2.16",
   "private": true,
   "description": "Build tooling for the Bedrock Technical Resource Pack: validates the pack and compiles it to a .mcpack.",
   "license": "SEE LICENSE IN LICENSE",

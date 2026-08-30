@@ -23,6 +23,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { parseJsonc } = require('./jsonc.js');
 const { PACK_ROOTS, resolveTexture } = require('./pack.js');
+const { readPngHeader } = require('./png.js');
 
 /** Top-level entries that are development material and are not shipped. */
 const DEV_ENTRIES = new Set([
@@ -32,6 +33,7 @@ const DEV_ENTRIES = new Set([
   '.github',
   '.gitignore',
   '.vscode',
+  'branding',
   'claude.md',
   'clearpicturefixer.py',
   'dist',
@@ -52,8 +54,10 @@ const RESOURCE_MODULE_TYPES = new Set(['resources', 'skin_pack', 'world_template
 /** Module types that would make this a behaviour pack. See CLAUDE.md. */
 const BEHAVIOUR_MODULE_TYPES = new Set(['data', 'script', 'client_data', 'interface', 'javascript']);
 
+/** Edge length Microsoft documents for a pack icon (CPACKICON104). */
+const ICON_EDGE = 256;
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 /**
  * Compile one allowlist pattern into a regular expression. `*` is the only
@@ -251,16 +255,7 @@ function checkFiles(index, report) {
 
   for (const packPath of index.files) {
     if (!packPath.toLowerCase().endsWith('.png')) continue;
-    const abs = path.join(index.root, packPath);
-    const head = Buffer.alloc(8);
-    const fd = fs.openSync(abs, 'r');
-    let read = 0;
-    try {
-      read = fs.readSync(fd, head, 0, 8, 0);
-    } finally {
-      fs.closeSync(fd);
-    }
-    if (read < 8 || !head.equals(PNG_MAGIC)) {
+    if (!readPngHeader(path.join(index.root, packPath)).valid) {
       report.error(packPath, 'is named .png but does not start with a PNG signature');
     }
   }
@@ -270,6 +265,47 @@ function checkFiles(index, report) {
     if (!known.has(entry.toLowerCase())) {
       report.warn(entry, 'is neither a pack root nor known development material, so it will not ship');
     }
+  }
+}
+
+/**
+ * Check `pack_icon.png` against Microsoft's documented rules for it.
+ *
+ * The icon is what players pick the pack out by in the resource pack list, and
+ * nothing in the game complains when it is wrong — it just draws badly. The
+ * rules and their severities are Microsoft's, from the Creator Tools validation
+ * reference (CPACKICON101-104); the rule IDs are quoted in the messages so the
+ * origin of each is traceable.
+ *
+ * CPACKICON101 (missing) is stricter here than the documented warning: the
+ * build refuses to package without an icon, since `pack_icon.png` is a required
+ * pack root. CPACKICON103 (not a PNG) is covered by the signature check on
+ * every image.
+ *
+ * @param {object} index pack index
+ * @param {Report} report
+ */
+function checkPackIcon(index, report) {
+  const ICON = 'pack_icon.png';
+  if (!index.files.includes(ICON)) return; // reported as a missing pack root
+
+  // CPACKICON102: one icon per pack root. A subpack legitimately carries its
+  // own, so only copies outside `subpacks/` are stray.
+  for (const packPath of index.files) {
+    if (packPath === ICON) continue;
+    if (!packPath.toLowerCase().endsWith(`/${ICON}`)) continue;
+    if (packPath.startsWith('subpacks/')) continue;
+    report.warn(packPath, `CPACKICON102: a second pack icon; only ${ICON} in the pack root is used`);
+  }
+
+  // CPACKICON104: square, and 256x256 for the best display.
+  const { width, height } = readPngHeader(path.join(index.root, ICON));
+  if (width === null || height === null) return; // not a PNG; CPACKICON103 said so
+
+  if (width !== height) {
+    report.warn(ICON, `CPACKICON104: must be square, found ${width}x${height}`);
+  } else if (width !== ICON_EDGE) {
+    report.warn(ICON, `CPACKICON104: should be ${ICON_EDGE}x${ICON_EDGE}, found ${width}x${height}`);
   }
 }
 
@@ -594,6 +630,7 @@ function validatePack(index, expected, external = loadExternalRefs(), baseline =
   const used = new Set();
 
   checkFiles(index, report);
+  checkPackIcon(index, report);
   checkManifest(index, report, expected);
   checkEntities(index, report, external, used);
   checkParticles(index, report, external, used);
@@ -606,6 +643,7 @@ function validatePack(index, expected, external = loadExternalRefs(), baseline =
 
 module.exports = {
   DEV_ENTRIES,
+  ICON_EDGE,
   Report,
   loadExternalRefs,
   loadVanillaBaseline,

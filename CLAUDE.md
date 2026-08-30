@@ -170,6 +170,25 @@ symmetric: forgetting to exclude ships the repository's documentation images and
 tooling to every player, while forgetting to include is caught by the audit the
 first time something references the missing file.
 
+### The pack icon
+
+`pack_icon.png` must be a valid PNG, square, and **256×256** — the size
+Microsoft documents for the pack selection screens. There is one per pack root;
+a subpack carries its own, nothing else should. The audit checks all of this,
+quoting the rule IDs from Microsoft's Creator Tools validation reference
+(`CPACKICON101`–`104`) so each message can be traced back to the rule it came
+from. Their severities are followed too, except that a missing icon is an error
+here rather than a warning, because `pack_icon.png` is a required pack root.
+
+The icon is an output, not something to edit by hand. `branding/` holds what
+produces it — the source background, the generator, and the full-size renders —
+and is development material, so it does not ship. Change the icon by editing
+`branding/make_icon.py` and re-running `python branding/make_icon.py`, which
+rewrites `pack_icon.png` along with the full-size composite and a
+`branding/pack_icon_256.png` copy — the same bytes the pack ships, kept there so
+the icon can be previewed at the size the game draws it. The generator needs
+Pillow and, the first time, the network, so it is not part of `npm run release`.
+
 ### Bedrock is case-sensitive; Windows is not
 
 `textures/Density` resolves to `textures/density.png` on a Windows dev machine
@@ -300,6 +319,20 @@ write an artifact if anything fails. A pack that fails the audit will still
 install and run — Bedrock does not report broken references — it just draws
 nothing, which is why the gate is here and not in-game.
 
+### Cutting a release
+
+Releases are made by hand, locally. There is no CI pipeline that builds or
+publishes the pack, and none should be added.
+
+1. `npm run set-version -- <major|minor|fix>` — moves the version everywhere it
+   is written.
+2. `npm run release` — must be green.
+3. Upload `dist/<name>-v<version>.mcpack` to the GitHub release for that
+   version, and tag it.
+
+The build prints a `sha256` of the artifact; it is worth pasting into the
+release notes, since the build is reproducible and anyone can check it.
+
 Tests run against the **shipped** pack, not a copy of it: `tests/pack.test.js`
 loads the working tree and asserts the real content validates, so breaking a
 reference fails the suite as well as the audit. Synthetic packs used to test the
@@ -325,7 +358,7 @@ left on disk after a failure so they can be opened and looked at.
 - **Re-compact JSON after writing it with `json.dumps`**, which explodes short
   numeric arrays across lines. The block and model files are kept compact.
 
---
+---
 
 ##  Compilation and release
 
@@ -333,3 +366,17 @@ Use `npm run release` to compile, test, and bundle the add-on. It will also
 increment the version number in `package.json` and `manifest.json`, and create a new release in the `dist/` folder. The release will be named according to the new version number, and will include a summary of the changes made in that version.
 
 Use Typescript to compile the project into a Minecraft .mcpack resource pack format. The compiled resource pack will be located in the `dist/` folder, and can be imported into Minecraft to use the tools provided by the add-on.
+
+---
+
+## Default Vanilla info
+
+The official Bedrock Add-on samples repository is located at: https://github.com/Mojang/bedrock-samples
+
+An unofficial Vanilla resource pack repository is located at: https://github.com/ZtechNetwork/MCBVanillaResourcePack
+
+Community documentation for the Bedrock Add-on system is located at: https://wiki.bedrock.dev/
+
+Official documentation for the Bedrock Add-on system is located at:
+* https://learn.microsoft.com/en-us/minecraft/creator/reference/content/vanillalistingsreference/?view=minecraft-bedrock-stable
+* https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/?view=minecraft-bedrock-stable
