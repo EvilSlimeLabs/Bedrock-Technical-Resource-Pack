@@ -6,11 +6,11 @@
       "states" : {
         "default" : {
           "transitions" : [
-            { "spawn4" : "query.is_local_player && !query.is_in_ui && v.spawn_toggle2 == 1" },
-            { "spawn6" : "query.is_local_player && !query.is_in_ui && v.spawn_toggle2 == 2" },
-            { "spawn8" : "query.is_local_player && !query.is_in_ui && v.spawn_toggle2 == 3" },
-            { "spawn10" : "query.is_local_player && !query.is_in_ui && v.spawn_toggle2 == 4" },
-            { "spawn12" : "query.is_local_player && !query.is_in_ui && v.spawn_toggle2 == 5" }
+            { "spawn4" : "query.life_time > 0.0 ? (query.is_local_player && !query.is_in_ui && v.spawn_toggle2 == 1) : 0" },
+            { "spawn6" : "query.life_time > 0.0 ? (query.is_local_player && !query.is_in_ui && v.spawn_toggle2 == 2) : 0" },
+            { "spawn8" : "query.life_time > 0.0 ? (query.is_local_player && !query.is_in_ui && v.spawn_toggle2 == 3) : 0" },
+            { "spawn10" : "query.life_time > 0.0 ? (query.is_local_player && !query.is_in_ui && v.spawn_toggle2 == 4) : 0" },
+            { "spawn12" : "query.life_time > 0.0 ? (query.is_local_player && !query.is_in_ui && v.spawn_toggle2 == 5) : 0" }
           ]
         },
         "spawn4" : {

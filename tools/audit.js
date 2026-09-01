@@ -12,13 +12,13 @@
 
 const { loadPack } = require('./lib/pack.js');
 const { validatePack } = require('./lib/validate.js');
-const { ROOT, currentVersion, packName, printFindings } = require('./lib/cli.js');
+const { ROOT, currentVersion, printFindings } = require('./lib/cli.js');
 
 function main() {
   const quiet = process.argv.includes('--quiet');
   const version = currentVersion();
   const index = loadPack(ROOT);
-  const { errors, warnings } = validatePack(index, { version, packName: packName(version) });
+  const { errors, warnings } = validatePack(index, { version });
 
   const counts = [
     `${index.files.length} files`,

@@ -72,19 +72,35 @@ function patternToRegExp(pattern) {
 }
 
 /**
- * Load `tools/external-refs.json` as compiled matchers.
+ * Compile one group of the allowlist: category name to patterns.
  *
- * @param {string} [file]
- * @returns {Map<string, RegExp[]>} category to patterns
+ * @param {object} group
+ * @returns {Map<string, RegExp[]>}
  */
-function loadExternalRefs(file = path.resolve(__dirname, '..', 'external-refs.json')) {
-  const doc = parseJsonc(fs.readFileSync(file, 'utf8'), 'tools/external-refs.json');
+function compileGroup(group) {
   const out = new Map();
-  for (const [key, value] of Object.entries(doc)) {
+  for (const [key, value] of Object.entries(group ?? {})) {
     if (key.startsWith('_') || !Array.isArray(value)) continue;
     out.set(key, value.map(patternToRegExp));
   }
   return out;
+}
+
+/**
+ * Load `tools/external-refs.json` as compiled matchers.
+ *
+ * @param {string} [file]
+ * @returns {{vanilla: Map<string, RegExp[]>, companions: Array<{pack: string, patterns: Map<string, RegExp[]>}>}}
+ */
+function loadExternalRefs(file = path.resolve(__dirname, '..', 'external-refs.json')) {
+  const doc = parseJsonc(fs.readFileSync(file, 'utf8'), 'tools/external-refs.json');
+  return {
+    vanilla: compileGroup(doc.vanilla),
+    companions: Object.entries(doc.companion_packs ?? {}).map(([pack, group]) => ({
+      pack,
+      patterns: compileGroup(group),
+    })),
+  };
 }
 
 /**
@@ -133,7 +149,7 @@ function isVersionTriple(value) {
  *
  * @param {object} index pack index
  * @param {Report} report
- * @param {{version: string, packName: string}} expected
+ * @param {{version: string}} expected
  */
 function checkManifest(index, report, expected) {
   const file = 'manifest.json';
@@ -225,9 +241,6 @@ function checkManifest(index, report, expected) {
       `header.version [${header.version.join(', ')}] does not match package.json version ${expected.version}`,
     );
   }
-  if (typeof header.name === 'string' && header.name !== expected.packName) {
-    report.error(file, `header.name must be "${expected.packName}", found "${header.name}"`);
-  }
   const prefix = `v${expected.version} — `;
   if (typeof header.description === 'string' && !header.description.startsWith(prefix)) {
     report.error(file, `header.description must start with "${prefix}"`);
@@ -310,15 +323,35 @@ function checkPackIcon(index, report) {
 }
 
 /**
- * True when `ref` is covered by the external allowlist for `category`.
+ * Decide whether something outside this pack supplies `ref`.
  *
- * @param {Map<string, RegExp[]>} external
- * @param {string} category
- * @param {string} ref
- * @returns {boolean}
+ * A vanilla match is silent. A companion-pack match is real but conditional:
+ * the identifier exists only while that pack is loaded too, and Minecraft logs
+ * a content error for it when it is not, so it is surfaced as a warning. That
+ * keeps a deliberate interoperability hook from looking like a clean resolve.
+ *
+ * @param {{vanilla: Map<string, RegExp[]>, companions: Array<{pack: string, patterns: Map<string, RegExp[]>}>}} external
+ * @param {Report} report
+ * @param {string} file pack path making the reference
+ * @param {string} category allowlist category
+ * @param {string} ref the identifier or path being referenced
+ * @param {string} where field the reference sits in, for the message
+ * @returns {boolean} true when the reference is accounted for
  */
-function isExternal(external, category, ref) {
-  return (external.get(category) ?? []).some((re) => re.test(ref));
+function accountedFor(external, report, file, category, ref, where) {
+  if ((external.vanilla.get(category) ?? []).some((re) => re.test(ref))) return true;
+
+  for (const { pack, patterns } of external.companions) {
+    if (!(patterns.get(category) ?? []).some((re) => re.test(ref))) continue;
+    report.warn(
+      file,
+      `${where} names "${ref}", which ${pack} provides — Minecraft logs a content error for it ` +
+        `in any world where ${pack} is not also loaded`,
+    );
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -341,7 +374,7 @@ function checkEntities(index, report, external, used) {
       if (typeof ref !== 'string') continue;
       const resolved = resolveTexture(index, ref);
       if (resolved) used.add(`texture:${resolved}`);
-      else if (!isExternal(external, 'texture', ref)) {
+      else if (!accountedFor(external, report, packPath, 'texture', ref, `textures.${short}`)) {
         report.error(packPath, `textures.${short} -> "${ref}" matches no file (check spelling and letter case)`);
       }
     }
@@ -349,7 +382,7 @@ function checkEntities(index, report, external, used) {
     for (const [short, ref] of Object.entries(geometry)) {
       if (typeof ref !== 'string') continue;
       if (index.geometries.has(ref)) used.add(`geometry:${ref}`);
-      else if (!isExternal(external, 'geometry', ref)) {
+      else if (!accountedFor(external, report, packPath, 'geometry', ref, `geometry.${short}`)) {
         report.error(packPath, `geometry.${short} -> "${ref}" is not defined by any model in models/`);
       }
     }
@@ -357,7 +390,7 @@ function checkEntities(index, report, external, used) {
     for (const [short, ref] of Object.entries(materials)) {
       if (typeof ref !== 'string') continue;
       if (index.materials.has(ref)) used.add(`material:${ref}`);
-      else if (!isExternal(external, 'material', ref)) {
+      else if (!accountedFor(external, report, packPath, 'material', ref, `materials.${short}`)) {
         report.error(packPath, `materials.${short} -> "${ref}" is not defined in materials/`);
       }
     }
@@ -367,7 +400,7 @@ function checkEntities(index, report, external, used) {
       const isController = ref.startsWith('controller.animation.');
       const table = isController ? index.animationControllers : index.animations;
       if (table.has(ref)) used.add(`${isController ? 'animation_controller' : 'animation'}:${ref}`);
-      else if (!isExternal(external, 'animation', ref)) {
+      else if (!accountedFor(external, report, packPath, 'animation', ref, `animations.${short}`)) {
         const where = isController ? 'animation_controllers/' : 'animations/';
         report.error(packPath, `animations.${short} -> "${ref}" is not defined in ${where}`);
       }
@@ -376,7 +409,7 @@ function checkEntities(index, report, external, used) {
     for (const [short, ref] of Object.entries(particles)) {
       if (typeof ref !== 'string') continue;
       if (index.particles.has(ref)) used.add(`particle:${ref}`);
-      else if (!isExternal(external, 'particle', ref)) {
+      else if (!accountedFor(external, report, packPath, 'particle', ref, `particle_effects.${short}`)) {
         report.error(packPath, `particle_effects.${short} -> "${ref}" is not defined in particles/`);
       }
     }
@@ -389,7 +422,7 @@ function checkEntities(index, report, external, used) {
       const name = typeof item === 'string' ? item : Object.keys(item ?? {})[0];
       if (typeof name !== 'string') continue;
       if (Object.prototype.hasOwnProperty.call(animations, name)) continue;
-      if (isExternal(external, 'animate', name)) continue;
+      if (accountedFor(external, report, packPath, 'animate', name, 'scripts.animate')) continue;
       report.warn(packPath, `scripts.animate lists "${name}", which is not a key of this entity's animations map`);
     }
 
@@ -399,7 +432,7 @@ function checkEntities(index, report, external, used) {
       if (index.renderControllers.has(id)) {
         used.add(`render_controller:${id}`);
         checkRenderController(index, report, packPath, id, { textures, geometry, materials });
-      } else if (!isExternal(external, 'render_controller', id)) {
+      } else if (!accountedFor(external, report, packPath, 'render_controller', id, 'render_controllers')) {
         report.error(packPath, `render_controllers lists "${id}", which is not defined in render_controllers/`);
       }
     }
@@ -481,7 +514,7 @@ function checkParticles(index, report, external, used) {
     if (typeof params.texture === 'string') {
       const resolved = resolveTexture(index, params.texture);
       if (resolved) used.add(`texture:${resolved}`);
-      else if (!isExternal(external, 'texture', params.texture)) {
+      else if (!accountedFor(external, report, packPath, 'texture', params.texture, `${id} texture`)) {
         report.error(packPath, `${id} draws with texture "${params.texture}", which matches no file`);
       }
     }
@@ -489,7 +522,7 @@ function checkParticles(index, report, external, used) {
     if (typeof params.material === 'string') {
       const material = params.material;
       if (index.materials.has(material)) used.add(`material:${material}`);
-      else if (!isExternal(external, 'material', material)) {
+      else if (!accountedFor(external, report, packPath, 'material', material, `${id} material`)) {
         report.error(packPath, `${id} draws with material "${material}", which is not defined in materials/`);
       }
     }
@@ -621,7 +654,7 @@ function checkOrphans(index, report, used) {
  * Run every check.
  *
  * @param {object} index pack index from `loadPack`
- * @param {{version: string, packName: string}} expected values the manifest must agree with
+ * @param {{version: string}} expected values the manifest must agree with
  * @param {Map<string, RegExp[]>} [external] allowlist, loaded from disk by default
  * @returns {{errors: Array<{file: string, message: string}>, warnings: Array<{file: string, message: string}>}}
  */

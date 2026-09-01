@@ -278,6 +278,32 @@ test('a vanilla entity the baseline does not cover is left alone', () => {
   assert.ok(!has(warnings, /vanilla declares/), dump(warnings));
 });
 
+test('a reference another pack provides resolves, but is warned about', () => {
+  // Structura's render controller is real, but only while Structura is loaded;
+  // Minecraft logs a content error for it in any world where it is not.
+  const { errors, warnings } = validateFixture('companion-pack', {
+    mutate: (docs) => {
+      docs['entity/test.entity.json']['minecraft:client_entity'].description.render_controllers.push(
+        'controller.render.armor_stand.ghost_blocks',
+      );
+    },
+  });
+  assert.deepEqual(errors, [], dump(errors));
+  assert.ok(has(warnings, /which Structura provides/), dump(warnings));
+  assert.ok(has(warnings, /where Structura is not also loaded/), dump(warnings));
+});
+
+test('a reference nothing provides is still an error', () => {
+  const { errors } = validateFixture('companion-typo', {
+    mutate: (docs) => {
+      docs['entity/test.entity.json']['minecraft:client_entity'].description.render_controllers.push(
+        'controller.render.armor_stand.ghost_block',
+      );
+    },
+  });
+  assert.ok(has(errors, /ghost_block", which is not defined/), dump(errors));
+});
+
 test('allowlist patterns match on * and nothing else', () => {
   assert.ok(patternToRegExp('animation.player.*').test('animation.player.cape'));
   assert.ok(!patternToRegExp('animation.player.*').test('animation.playerx'));

@@ -15,17 +15,6 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const ARTIFACT_BASENAME = 'Bedrock-Technical-Resource-Pack';
 
 /**
- * The in-game pack name, which carries the version so players can see at a
- * glance which build is applied in the resource pack list.
- *
- * @param {string} version dotted `major.minor.patch`
- * @returns {string}
- */
-function packName(version) {
-  return `BE_Tech_RP_v${version}`;
-}
-
-/**
  * Read `package.json`, the single source of truth for the version.
  *
  * @returns {{version: string, [key: string]: unknown}}
@@ -66,4 +55,4 @@ function printFindings(label, findings) {
   }
 }
 
-module.exports = { ROOT, ARTIFACT_BASENAME, packName, readPackageJson, currentVersion, printFindings };
+module.exports = { ROOT, ARTIFACT_BASENAME, readPackageJson, currentVersion, printFindings };

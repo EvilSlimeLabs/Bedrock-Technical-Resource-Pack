@@ -23,7 +23,7 @@ function basePack(version = '1.2.3') {
       format_version: 2,
       header: {
         description: `v${version} — fixture`,
-        name: `BE_Tech_RP_v${version}`,
+        name: 'Fixture Pack',
         uuid: '11111111-2222-4333-8444-555555555555',
         version: [major, minor, fix],
         min_engine_version: [1, 21, 1],
@@ -143,10 +143,10 @@ function writeFixture(name, { mutate, raw = {}, version = '1.2.3' } = {}) {
 
 /**
  * @param {string} version
- * @returns {{version: string, packName: string}} what the manifest must agree with
+ * @returns {{version: string}} what the manifest must agree with
  */
 function expectationsFor(version = '1.2.3') {
-  return { version, packName: `BE_Tech_RP_v${version}` };
+  return { version };
 }
 
 module.exports = { GENERATED, basePack, writeFixture, expectationsFor, PNG, ICON, makePng };

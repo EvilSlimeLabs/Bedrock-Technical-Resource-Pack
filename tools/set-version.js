@@ -5,9 +5,9 @@
  * place it is written.
  *
  * CLAUDE.md requires the version to appear, consistently, in `package.json`,
- * `manifest.json`'s `header.version`, the in-game pack name, and the leading
- * `v<version> — ` of the pack description. `npm run audit` fails when they
- * disagree; this is the tool that keeps them together.
+ * `manifest.json`'s `header.version`, and the leading `v<version> — ` of the
+ * pack description. `npm run audit` fails when they disagree; this is the tool
+ * that keeps them together. The pack's `header.name` is not touched.
  *
  * The bump words follow CLAUDE.md: `major` resets minor and fix, `minor` resets
  * fix, `fix` touches only the last digit.
@@ -15,7 +15,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { ROOT, packName, readPackageJson } = require('./lib/cli.js');
+const { ROOT, readPackageJson } = require('./lib/cli.js');
 
 /**
  * @param {string} current dotted version
@@ -62,12 +62,11 @@ function main() {
   const manifestPath = path.join(ROOT, 'manifest.json');
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   manifest.header.version = triple;
-  manifest.header.name = packName(version);
+  // header.name is the pack's name, not a version string; it is left alone.
   manifest.header.description = reprefix(manifest.header.description, version);
   fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
   console.log(`set-version: ${previous} -> ${version}`);
-  console.log(`set-version: manifest.json header.name is now "${manifest.header.name}"`);
   console.log(`set-version: manifest.json header.description now leads with "v${version} — "`);
 }
 

@@ -14,20 +14,24 @@ const { loadPack, collectPackFiles, resolveTexture } = require('../tools/lib/pac
 const { validatePack, loadVanillaBaseline } = require('../tools/lib/validate.js');
 const { writeZip, readZip } = require('../tools/lib/zip.js');
 const { readPngHeader } = require('../tools/lib/png.js');
-const { ROOT, currentVersion, packName } = require('../tools/lib/cli.js');
+const { ROOT, currentVersion } = require('../tools/lib/cli.js');
 
 const index = loadPack(ROOT);
 const version = currentVersion();
 
 test('the shipped pack validates without errors', () => {
-  const { errors } = validatePack(index, { version, packName: packName(version) });
+  const { errors } = validatePack(index, { version });
   assert.deepEqual(errors.map((e) => `${e.file}: ${e.message}`), []);
 });
 
 test('the version is the same in package.json and manifest.json', () => {
   assert.equal(index.manifest.header.version.join('.'), version);
-  assert.equal(index.manifest.header.name, packName(version));
   assert.ok(index.manifest.header.description.startsWith(`v${version} — `));
+});
+
+test('the pack has a name, whatever the author chose it to be', () => {
+  assert.equal(typeof index.manifest.header.name, 'string');
+  assert.ok(index.manifest.header.name.trim().length > 0);
 });
 
 test('the archive puts manifest.json at its root', () => {

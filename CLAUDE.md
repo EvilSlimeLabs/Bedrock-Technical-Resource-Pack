@@ -36,17 +36,19 @@ increment the counter. That overrides the rule for that round.
 - `package.json` — the `"version"` string. This is the source of truth; every
   other copy is checked against it.
 - `manifest.json` — `header.version`, the array form `[major, minor, fix]`.
-- `manifest.json` — `header.name`, which is `BE_Tech_RP_v<version>`. It is what
-  the player sees in the resource pack list, so it carries the version to make
-  the applied build obvious in a screenshot.
-- `manifest.json` — `header.description`, which leads with `v<version> — `.
+- `manifest.json` — `header.description`, which leads with `v<version> — `. That
+  is what makes the applied build obvious in the resource pack list, since the
+  description renders under the name there.
 
-`npm run set-version -- <major|minor|fix|x.y.z>` moves all four together and is
+`manifest.json`'s `header.name` is the pack's name and nothing else. It is the
+author's to choose, no tool rewrites it, and it does not carry the version.
+
+`npm run set-version -- <major|minor|fix|x.y.z>` moves all three together and is
 the only thing that should be editing them. The bump words follow the rules
 above: `major` resets the minor and fix digits, `minor` resets the fix digit.
 
 Do not hand-edit the version in one place and expect the other to follow.
-`npm run audit` fails when the four disagree, which is deliberate — a pack whose
+`npm run audit` fails when the three disagree, which is deliberate — a pack whose
 `header.version` did not move installs *over* the previous one instead of
 alongside it, and the player sees no change.
 
@@ -106,6 +108,36 @@ against the real published type definitions** rather than from memory. Grep
 shows examples for APIs no longer in the stable module, and enumerating a class
 in the `.d.ts` has more than once turned up a method that a keyword search
 missed.
+
+---
+
+## The player entity is rendered without an entity
+
+The pack is loaded as a global resource, so the player client entity is
+evaluated in contexts where no entity is bound to the render — the main menu,
+and the first frames of entering a world. Most queries are null-safe there and
+read 0. **`query.is_item_name_any` and `query.is_local_player` are not**: they
+raise a content error every time they are reached. `query.life_time` is safe,
+and reads 0.
+
+Molang's conditional is documented to run only the branch it takes. `&&` is not
+documented to short-circuit — the reference says only that operator *precedence*
+matches C. So gate entity-dependent queries with a conditional, never by putting
+a cheaper test first and trusting `&&`:
+
+```
+"v.in_world = query.life_time > 0.0;",
+"v.chunk_toggle_action = v.in_world ? query.is_item_name_any(...) : 0;"
+```
+
+and in a controller transition:
+
+```
+"query.life_time > 0.0 ? (query.is_local_player && !query.is_in_ui && v.chunk_toggle2) : 0"
+```
+
+The armor stand entity uses the same queries unguarded, and should stay that
+way: an armor stand only ever renders where an entity exists.
 
 ---
 
@@ -239,12 +271,24 @@ Two indirections are worth knowing because they are where the bugs hide:
 - **`scripts.animate` entries are short names too**, keys of the entity's own
   `animations` map, not identifiers.
 
-Identifiers the pack references but does not define — vanilla content, and
-content from packs commonly loaded alongside this one — live in
+Identifiers the pack references but does not define live in
 `tools/external-refs.json`, where `*` is the only wildcard. Anything that
 resolves to nothing and matches nothing there is an error. Adding a pattern is a
 claim that something else provides that identifier, so prefer the narrowest
 pattern that covers the reference.
+
+The file separates two kinds of borrow, because they are not equally safe:
+
+- **`vanilla`** is content the game always provides. A match is silent.
+- **`companion_packs`** is content another pack provides — Structura's ghost
+  block render controller, for one. Because this pack replaces the armor stand
+  and player client entities outright, naming the companion's content is the
+  only way the two can work together with this pack on top. Such a reference
+  resolves only while the companion is loaded, and Minecraft logs
+  `Invalid render controller` for it in every world where it is not, so a match
+  is reported as a **warning**. That warning is the trade stated out loud:
+  interoperability when the companion is present, a log line when it is absent.
+  Do not silence it by moving the pattern into `vanilla`.
 
 ### Replacing a vanilla client entity
 
@@ -288,8 +332,9 @@ animation map declares, an unrecognised entry in the repository root.
 - **UUIDs are never regenerated.** The header UUID is the pack's identity: a new
   one makes every world with the pack applied treat it as a different pack and
   quietly drop the old one.
-- `header.version`, `header.name` and the `header.description` prefix agree with
-  `package.json`.
+- `header.version` and the `header.description` prefix agree with
+  `package.json`. `header.name` is the author's, and is only checked for being
+  a non-empty string.
 
 ### Adding a check
 

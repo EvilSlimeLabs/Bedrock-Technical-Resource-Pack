@@ -1,51 +1,73 @@
 {
   "_comment": [
-    "Identifiers this pack references but does not define: vanilla client entity",
-    "content, and content supplied by packs that are commonly loaded alongside",
-    "this one (Structura). The audit treats any reference that resolves to",
-    "nothing as a broken link unless it matches one of these patterns, so a",
-    "typo in a vanilla identifier is still caught while a legitimate borrow is",
-    "not. `*` matches any run of characters.",
+    "Identifiers this pack references but does not define. The audit treats any",
+    "reference that resolves to nothing as a broken link unless it matches one of",
+    "these patterns, so a typo in a borrowed identifier is still caught while a",
+    "legitimate borrow is not. `*` matches any run of characters.",
     "",
-    "Adding a pattern is a claim that the game provides that identifier. Prefer",
-    "the narrowest pattern that covers the reference."
+    "`vanilla` is content the game itself always provides; a match is silent.",
+    "",
+    "`companion_packs` is content another pack provides. Those resolve only when",
+    "that pack is loaded alongside this one, and Minecraft logs a content error",
+    "when it is not, so a match is reported as a warning rather than passing",
+    "quietly. Keeping the reference is a deliberate trade: interoperability when",
+    "the companion is present, a log line when it is absent.",
+    "",
+    "Adding a pattern is a claim that something else provides that identifier.",
+    "Prefer the narrowest pattern that covers the reference."
   ],
-  "geometry": [
-    "geometry.humanoid.*",
-    "geometry.cape"
-  ],
-  "animation": [
-    "animation.humanoid.*",
-    "animation.player.*",
-    "animation.skeleton.*",
-    "controller.animation.humanoid.*",
-    "controller.animation.persona.*",
-    "controller.animation.player.*"
-  ],
-  "render_controller": [
-    "controller.render.player.*",
-    "controller.render.armor_stand",
-    "controller.render.armor_stand.ghost_blocks"
-  ],
-  "animate": [
-    "controller.pose",
-    "controller.wiggling",
-    "scale"
-  ],
-  "material": [
-    "entity_alphatest",
-    "entity_alphablend",
-    "entity_emissive",
-    "player_animated",
-    "player_spectator",
-    "cape",
-    "particles_*"
-  ],
-  "particle": [],
-  "texture": [
-    "textures/entity/*",
-    "textures/items/*",
-    "textures/blocks/*",
-    "textures/ui/*"
-  ]
+  "vanilla": {
+    "geometry": [
+      "geometry.humanoid.*",
+      "geometry.cape"
+    ],
+    "animation": [
+      "animation.humanoid.*",
+      "animation.player.*",
+      "animation.skeleton.*",
+      "controller.animation.humanoid.*",
+      "controller.animation.persona.*",
+      "controller.animation.player.*"
+    ],
+    "render_controller": [
+      "controller.render.player.*",
+      "controller.render.armor_stand"
+    ],
+    "animate": [
+      "controller.pose",
+      "controller.wiggling"
+    ],
+    "material": [
+      "entity_alphatest",
+      "entity_alphablend",
+      "entity_emissive",
+      "player_animated",
+      "player_spectator",
+      "cape",
+      "particles_*"
+    ],
+    "particle": [],
+    "texture": [
+      "textures/entity/*",
+      "textures/items/*",
+      "textures/blocks/*",
+      "textures/ui/*"
+    ]
+  },
+  "companion_packs": {
+    "Structura": {
+      "_note": [
+        "Structura renders build guides as ghost blocks. This pack replaces the",
+        "armor stand client entity outright, so Structura's render controller and",
+        "scale animation have to be named here for the two packs to work",
+        "together with this one on top."
+      ],
+      "render_controller": [
+        "controller.render.armor_stand.ghost_blocks"
+      ],
+      "animate": [
+        "scale"
+      ]
+    }
+  }
 }

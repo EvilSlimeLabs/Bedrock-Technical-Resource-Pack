@@ -6,7 +6,7 @@
       "states" : {
         "default" : {
           "transitions" : [
-            { "show" : "query.is_local_player && !query.is_in_ui && v.slime_show" }
+            { "show" : "query.life_time > 0.0 ? (query.is_local_player && !query.is_in_ui && v.slime_show) : 0" }
           ]
         },
         "show" : {

@@ -19,7 +19,7 @@ const crypto = require('node:crypto');
 const { loadPack } = require('./lib/pack.js');
 const { validatePack } = require('./lib/validate.js');
 const { writeZip } = require('./lib/zip.js');
-const { ROOT, ARTIFACT_BASENAME, currentVersion, packName, printFindings } = require('./lib/cli.js');
+const { ROOT, ARTIFACT_BASENAME, currentVersion, printFindings } = require('./lib/cli.js');
 
 /**
  * Remove artifacts from previous versions so `dist/` holds one release, not a
@@ -51,7 +51,7 @@ function formatSize(bytes) {
 function main() {
   const version = currentVersion();
   const index = loadPack(ROOT);
-  const { errors, warnings } = validatePack(index, { version, packName: packName(version) });
+  const { errors, warnings } = validatePack(index, { version });
 
   if (warnings.length > 0) {
     console.log(`build: ${warnings.length} warning(s)`);
