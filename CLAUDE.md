@@ -127,8 +127,18 @@ which value is **returned**, and never that the other branch goes unevaluated.
 `&&` is not documented to short-circuit either; the reference says only that
 operator *precedence* matches C.
 
-Established by testing in game: wrapping these queries in `A ? B : C` with a
-`query.life_time > 0.0` condition does **not** stop the errors.
+Established by testing in game, in that no-entity context:
+
+- `A ? B` really does skip its guarded part. A query placed there behind a
+  false gate produces no content error at all.
+- `A ? B : C` does not do the same job — the same queries behind a ternary kept
+  erroring.
+- **`query.life_time` reads non-zero**, so it is useless as a "is there an
+  entity" gate, however much it looks like one.
+- `query.is_alive`, `query.base_swing_duration`, `query.has_head_gear`,
+  `query.equipped_item_any_tag` and `query.is_riding_any_entity_of_type` are all
+  evaluated there without erroring, so they return a value rather than failing.
+  `query.is_alive` is the gate in use.
 
 So keep every entity-dependent query on the player in a single `A ? B` block in
 `pre_animation`, defaulting the variables beforehand, and keep such queries out
@@ -137,6 +147,7 @@ variables the block already set:
 
 ```
 "v.plyr_visible = 0;",
+"v.in_world = query.is_alive;",
 "v.in_world ? { ... v.plyr_visible = query.is_local_player && !query.is_in_ui; };"
 ```
 
@@ -290,15 +301,16 @@ pattern that covers the reference.
 The file separates two kinds of borrow, because they are not equally safe:
 
 - **`vanilla`** is content the game always provides. A match is silent.
-- **`companion_packs`** is content another pack provides — Structura's ghost
-  block render controller, for one. Because this pack replaces the armor stand
-  and player client entities outright, naming the companion's content is the
-  only way the two can work together with this pack on top. Such a reference
-  resolves only while the companion is loaded, and Minecraft logs
-  `Invalid render controller` for it in every world where it is not, so a match
-  is reported as a **warning**. That warning is the trade stated out loud:
-  interoperability when the companion is present, a log line when it is absent.
-  Do not silence it by moving the pattern into `vanilla`.
+- **`companion_packs`** is content another pack provides. It is empty, and
+  should stay that way. Because this pack replaces the armor stand and player
+  client entities outright, naming a companion's content is the only way the two
+  can work together with this pack on top — but such a reference resolves only
+  while that pack is loaded, and Minecraft logs a content error for it in every
+  world where it is not. **The pack does not accept log spam as the price of
+  interoperability.** A borrow that is worth making is worth making through a
+  subpack, so the base pack stays silent. A match here is reported as a warning
+  for exactly that reason; do not silence one by moving the pattern into
+  `vanilla`.
 
 ### Replacing a vanilla client entity
 

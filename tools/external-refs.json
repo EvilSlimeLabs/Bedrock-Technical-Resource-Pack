@@ -54,20 +54,5 @@
       "textures/ui/*"
     ]
   },
-  "companion_packs": {
-    "Structura": {
-      "_note": [
-        "Structura renders build guides as ghost blocks. This pack replaces the",
-        "armor stand client entity outright, so Structura's render controller and",
-        "scale animation have to be named here for the two packs to work",
-        "together with this one on top."
-      ],
-      "render_controller": [
-        "controller.render.armor_stand.ghost_blocks"
-      ],
-      "animate": [
-        "scale"
-      ]
-    }
-  }
+  "companion_packs": {}
 }

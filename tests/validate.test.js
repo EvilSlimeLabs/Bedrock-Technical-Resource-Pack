@@ -10,7 +10,8 @@ const { writeFixture, expectationsFor, PNG, makePng } = require('./helpers/fixtu
  * Build a fixture and validate it.
  *
  * @param {string} name
- * @param {object} [options] passed through to `writeFixture`; `baseline` overrides
+ * @param {object} [options] passed through to `writeFixture`; `external` overrides
+ *   the borrowed-identifier allowlist and `baseline` overrides
  *   the vanilla short-name baseline, which is empty here so fixtures are judged
  *   on their own contents rather than on what vanilla currently ships
  * @returns {{errors: Array<{file: string, message: string}>, warnings: Array<{file: string, message: string}>}}
@@ -18,7 +19,8 @@ const { writeFixture, expectationsFor, PNG, makePng } = require('./helpers/fixtu
 function validateFixture(name, options) {
   const root = writeFixture(name, options);
   const baseline = options?.baseline ?? { entities: {} };
-  return validatePack(loadPack(root), expectationsFor(options?.version), loadExternalRefs(), baseline);
+  const external = options?.external ?? loadExternalRefs();
+  return validatePack(loadPack(root), expectationsFor(options?.version), external, baseline);
 }
 
 /**
@@ -282,6 +284,17 @@ test('a reference another pack provides resolves, but is warned about', () => {
   // Structura's render controller is real, but only while Structura is loaded;
   // Minecraft logs a content error for it in any world where it is not.
   const { errors, warnings } = validateFixture('companion-pack', {
+    // The real vanilla list, plus a companion pack declared here so the test
+    // does not depend on which borrows the shipped allowlist happens to hold.
+    external: {
+      ...loadExternalRefs(),
+      companions: [
+        {
+          pack: 'Structura',
+          patterns: new Map([['render_controller', [/^controller\.render\.armor_stand\.ghost_blocks$/]]]),
+        },
+      ],
+    },
     mutate: (docs) => {
       docs['entity/test.entity.json']['minecraft:client_entity'].description.render_controllers.push(
         'controller.render.armor_stand.ghost_blocks',

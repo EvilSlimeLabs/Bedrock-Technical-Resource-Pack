@@ -86,7 +86,6 @@
 	  {"buried_treasure": "v.treasure_show"},
 	  {"outpost_spots": "v.outpost_show"},
 	  {"spawner_radius": "v.spawner_show && variable.armor_stand.pose_index > 0"},
-	  "scale", //structura
 	  "sim_control_armr",
 	  "spawn_control_armr",
 	  "beacon_control_armr"
@@ -140,8 +139,7 @@
 	{"controller.render.pillager_target": "v.pillager_show"},
 	{"controller.render.sugarcane": "v.sugarcane_show"},
 	{"controller.render.crop_water": "v.crop_show"},
-        {"controller.render.spider_blocking": "v.spider_show"},
-	"controller.render.armor_stand.ghost_blocks" //structura
+        {"controller.render.spider_blocking": "v.spider_show"}
       ]
     }
   }
