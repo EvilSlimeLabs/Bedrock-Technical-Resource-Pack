@@ -1,13 +1,13 @@
 {
   "format_version": 2,
   "header": {
-    "description": "v0.2.19 — Show various game mechanic distances and measurements, armor stands with gunpowder, prismarine shards, sticks, planks, turtle eggs, rotten flesh, and spider eyes will show extra data.",
+    "description": "v0.2.20 — Show various game mechanic distances and measurements, armor stands with gunpowder, prismarine shards, sticks, planks, turtle eggs, rotten flesh, and spider eyes will show extra data.",
     "name": "TechPack - Technical Visualizations",
     "uuid": "51cfa52c-aaf5-431b-bcc5-dbdc3af9a5ce",
     "version": [
       0,
       2,
-      19
+      20
     ],
     "min_engine_version": [
       1,

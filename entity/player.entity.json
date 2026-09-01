@@ -109,7 +109,7 @@
 					"v.slime_show = 0;",
 					"v.spawn_toggle_action = 0;",
 					"v.plyr_visible = 0;",
-					"v.in_world ? { v.chunk_toggle_action = query.is_item_name_any('slot.weapon.offhand', 0, 'minecraft:firework_rocket', 'minecraft:nautilus_shell'); v.slime_show = query.is_item_name_any('slot.weapon.offhand', 0, 'minecraft:nautilus_shell'); v.spawn_toggle_action = query.is_item_name_any('slot.weapon.offhand', 0, 'minecraft:firework_rocket', 'minecraft:nautilus_shell') && query.is_item_name_any('slot.weapon.mainhand', 0, 'minecraft:firework_rocket', 'minecraft:nautilus_shell'); v.plyr_visible = query.is_local_player && !query.is_in_ui; };",
+					"v.in_world ? { v.chunk_toggle_action = query.is_item_name_any('slot.weapon.offhand', 0, 'minecraft:firework_rocket', 'minecraft:nautilus_shell'); v.slime_show = query.is_item_name_any('slot.weapon.offhand', 0, 'minecraft:nautilus_shell'); v.spawn_toggle_action = query.is_item_name_any('slot.weapon.offhand', 0, 'minecraft:firework_rocket', 'minecraft:nautilus_shell') && query.is_item_name_any('slot.weapon.mainhand', 0, 'minecraft:firework_rocket', 'minecraft:nautilus_shell'); v.plyr_visible = 1; };",
 					"v.chunk_toggle1 = v.chunk_toggle_action && !v.chunk_toggle3 ? 1 : 0;",
 					"v.chunk_toggle2 = v.chunk_toggle1 && !v.chunk_toggle2 ? 1 : (v.chunk_toggle1 && v.chunk_toggle2 ? 0 : v.chunk_toggle2);",
 					"v.chunk_toggle3 = v.chunk_toggle_action ? 1 : 0;",
