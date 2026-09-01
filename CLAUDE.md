@@ -120,21 +120,31 @@ read 0. **`query.is_item_name_any` and `query.is_local_player` are not**: they
 raise a content error every time they are reached. `query.life_time` is safe,
 and reads 0.
 
-Molang's conditional is documented to run only the branch it takes. `&&` is not
-documented to short-circuit — the reference says only that operator *precedence*
-matches C. So gate entity-dependent queries with a conditional, never by putting
-a cheaper test first and trusting `&&`:
+Molang's two conditional forms are documented differently, and the difference
+is the whole game here. `A ? B` — "the part after the '?' is only run if the
+part before it evaluates to a true boolean". `A ? B : C` — the docs say only
+which value is **returned**, and never that the other branch goes unevaluated.
+`&&` is not documented to short-circuit either; the reference says only that
+operator *precedence* matches C.
+
+Established by testing in game: wrapping these queries in `A ? B : C` with a
+`query.life_time > 0.0` condition does **not** stop the errors.
+
+So keep every entity-dependent query on the player in a single `A ? B` block in
+`pre_animation`, defaulting the variables beforehand, and keep such queries out
+of animation controller transitions entirely — a transition should read
+variables the block already set:
 
 ```
-"v.in_world = query.life_time > 0.0;",
-"v.chunk_toggle_action = v.in_world ? query.is_item_name_any(...) : 0;"
+"v.plyr_visible = 0;",
+"v.in_world ? { ... v.plyr_visible = query.is_local_player && !query.is_in_ui; };"
 ```
 
-and in a controller transition:
+```
+{ "show": "v.plyr_visible && v.chunk_toggle2" }
+```
 
-```
-"query.life_time > 0.0 ? (query.is_local_player && !query.is_in_ui && v.chunk_toggle2) : 0"
-```
+That keeps the whole render path down to one line that can fail, instead of ten.
 
 The armor stand entity uses the same queries unguarded, and should stay that
 way: an armor stand only ever renders where an entity exists.
